@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <base target="_top">
+    <title>ระบบแบบสำรวจออนไลน์</title>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #4A90E2;
+            --secondary-color: #2C3E50;
+            --bg-light: #f8f9fa;
+            --bg-white: #FFFFFF;
+            --border-color: #e3e8ee;
+            --text-primary: #111827;
+            --text-secondary: #5A6872;
+        }
+
+        body {
+            font-family: 'Kanit', sans-serif;
+            background-color: var(--bg-light);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .main-container {
+            display: flex;
+            width: 100%;
+            max-width: 900px;
+            background-color: var(--bg-white);
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.07);
+            overflow: hidden;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+        }
+
+        .info-panel {
+            flex-basis: 55%;
+            padding: 50px 40px;
+            background-color: #FDFEFE;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        
+        .logo-image {
+            max-width: 220px;
+            height: auto;
+            margin-bottom: 25px;
+        }
+        
+        .info-panel h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin: 0;
+        }
+        .info-panel p {
+            font-size: 16px;
+            color: var(--text-secondary);
+            margin-top: 10px;
+            line-height: 1.6;
+        }
+
+        .action-panel {
+            flex-basis: 45%;
+            padding: 30px;
+            background-color: #F4F8FD;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .action-btn {
+            display: flex;
+            align-items: center;
+            padding: 20px;
+            text-decoration: none;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            background-color: var(--bg-white);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .action-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+        .action-btn .btn-icon {
+            flex-shrink: 0;
+            width: 40px;
+            height: 40px;
+            margin-right: 15px;
+            color: var(--primary-color);
+        }
+        .action-btn.admin .btn-icon {
+            color: var(--secondary-color);
+        }
+
+        .action-btn .btn-text strong {
+            display: block;
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+        .action-btn .btn-text span {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+        .error-message {
+             text-align: center;
+             padding: 40px;
+             color: #D32F2F;
+        }
+
+        @media (max-width: 768px) {
+            body { padding: 0; }
+            .main-container { flex-direction: column; border-radius: 0; min-height: 100vh; }
+            .info-panel { text-align: center; padding: 40px 25px; align-items: center; }
+            .action-panel { padding: 25px; }
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="main-container">
+    <div class="info-panel">
+        <img src="https://i.postimg.cc/cC36Dyhn/LOGO-MAIL-IPO.jpg" alt="Company Logo" class="logo-image">
+        <h1>ระบบแบบสำรวจออนไลน์</h1>
+        <p>ยินดีต้อนรับ<br>กรุณาเลือกรายการที่ต้องการเพื่อเริ่มต้นใช้งาน</p>
+    </div>
+    <div class="action-panel">
+        <a id="survey-link" href="#" class="action-btn survey">
+            <div class="btn-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                </svg>
+            </div>
+            <div class="btn-text">
+                <strong>ทำแบบสำรวจ</strong>
+                <span>สำหรับผู้ใช้งานทั่วไป</span>
+            </div>
+        </a>
+        <a id="admin-link" href="#" class="action-btn admin">
+            <div class="btn-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6a7.5 7.5 0 100 15 7.5 7.5 0 000-15zM21 21l-5.197-5.197M13.282 7.032a3.75 3.75 0 015.684 0l.004.003.004.004a3.75 3.75 0 010 5.684l-.004.004-.004.003a3.75 3.75 0 01-5.684 0l-.004-.003-.004-.004a3.75 3.75 0 010-5.684l.004-.004.004-.003z" />
+                </svg>                                  
+            </div>
+            <div class="btn-text">
+                <strong>จัดการระบบ / แดชบอร์ด</strong>
+                <span>สำหรับผู้ดูแลระบบ</span>
+            </div>
+        </a>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelector('.main-container').style.opacity = '1';
+
+        google.script.run
+            .withSuccessHandler(url => {
+                if (url) {
+                    document.getElementById('survey-link').href = url + '?page=survey';
+                    document.getElementById('admin-link').href = url + '?page=admin';
+                }
+            })
+            .withFailureHandler(err => {
+                document.body.innerHTML = `<div class="error-message"><h1>เกิดข้อผิดพลาด</h1><p>${err.message || 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้'}</p></div>`;
+            })
+            .getWebAppUrl();
+    });
+</script>
+
+</body>
+</html>
