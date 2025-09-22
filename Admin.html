@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <base target="_top">
+    <title>Admin Panel</title>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary-color: #4A90E2; --primary-hover-color: #357ABD;
+            --success-color: #27AE60; --danger-color: #E74C3C; --warning-color: #F39C12;
+            --text-dark: #2C3E50; --text-light: #5A6872;
+            --bg-color: #f8f9fa; --card-bg-color: #ffffff;
+            --border-color: #e3e8ee; --sidebar-bg: #1F2937;
+            --sidebar-text: #D1D5DB; --sidebar-active-text: #FFFFFF; --sidebar-active-bg: #374151;
+            --font-family: 'Kanit', sans-serif;
+        }
+        *, *::before, *::after { box-sizing: border-box; }
+        body { font-family: var(--font-family); background-color: var(--bg-color); margin: 0; color: var(--text-dark); -webkit-font-smoothing: antialiased; }
+        #login-screen, #loadingOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; z-index: 2000; }
+        #login-screen { background-color: var(--bg-color); transition: opacity 0.5s ease; }
+        #loadingOverlay { background: rgba(30, 41, 59, 0.7); flex-direction: column; color: white; backdrop-filter: blur(5px); }
+        .spinner { width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 100% { transform: rotate(360deg) } }
+        .login-card { background-color: var(--card-bg-color); padding: 40px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.07); text-align: center; width: 100%; max-width: 380px; border: 1px solid var(--border-color); }
+        .login-card .logo { font-size: 32px; margin-bottom: 10px; }
+        .login-card h2 { margin: 0; font-size: 24px; }
+        .login-card p { margin: 10px 0 25px 0; color: var(--text-light); }
+        .login-card input { text-align: center; font-size: 16px; }
+        #login-error { color: var(--danger-color); margin-top: 15px; font-weight: 500; display: none; }
+        #app-container { display: grid; grid-template-columns: 260px 1fr; min-height: 100vh; display: none; }
+        #sidebar { background-color: var(--sidebar-bg); color: var(--sidebar-text); padding: 20px; display: flex; flex-direction: column; }
+        .sidebar-header { text-align: center; padding: 10px 0 30px 0; }
+        .sidebar-header h2 { color: var(--sidebar-active-text); font-size: 20px; margin:0; }
+        #sidebar nav a { display: flex; align-items: center; padding: 12px 15px; border-radius: 8px; text-decoration: none; color: var(--sidebar-text); font-weight: 500; margin-bottom: 5px; transition: all 0.2s; }
+        #sidebar nav a:hover { background-color: var(--sidebar-active-bg); color: var(--sidebar-active-text); }
+        #sidebar nav a.active { background-color: var(--primary-color); color: var(--sidebar-active-text); }
+        #sidebar nav a svg { width: 20px; height: 20px; margin-right: 15px; }
+        #sidebar .sidebar-footer { margin-top: auto; }
+        #main-content { padding: 30px; overflow-y: auto; }
+        .content-header { margin-bottom: 30px; display:flex; justify-content: space-between; align-items:center; }
+        .content-header h1 { font-size: 28px; font-weight: 700; margin: 0; }
+        .card { background: var(--card-bg-color); padding: 25px; border-radius: 12px; box-shadow: 0 6px 24px rgba(44, 62, 80, 0.08); margin-bottom: 25px; border: 1px solid var(--border-color); }
+        .btn { padding: 9px 16px; border-radius: 8px; border: 1px solid var(--border-color); background-color: white; cursor: pointer; font-size: 14px; font-weight: 500; transition: all .2s; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; }
+        .btn svg { width: 16px; height: 16px; }
+        .btn:hover { transform: translateY(-1px); box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .btn-primary { background-color: var(--primary-color); color: white; border-color: var(--primary-color); }
+        .btn-primary:hover { background-color: var(--primary-hover-color); border-color: var(--primary-hover-color); }
+        .btn-danger { background-color: var(--danger-color); color: white; border-color: var(--danger-color); }
+        .view-content { display: none; } 
+        .view-content.active { display: block; animation: fadeIn 0.5s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        label { font-weight: 500; color: #34495E; display: block; margin-bottom: 8px; font-size: 14px; }
+        input[type="text"], input[type="password"], textarea, select { width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 15px; margin-top: 5px; transition: border-color .2s, box-shadow .2s; font-family: var(--font-family); }
+        input[type="text"]:focus, input[type="password"]:focus, textarea:focus, select:focus { border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.2); outline: 0; }
+        .dashboard-tabs { display: flex; gap: 10px; margin-bottom: 25px; border-bottom: 1px solid var(--border-color); }
+        .tab-link { padding: 10px 20px; cursor: pointer; border: none; background: none; font-family: var(--font-family); font-size: 16px; font-weight: 500; color: var(--text-light); border-bottom: 3px solid transparent; transition: all 0.3s; }
+        .tab-link.active { color: var(--primary-color); border-bottom-color: var(--primary-color); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.5s; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 25px; }
+        .stat-card { display: flex; align-items: center; padding: 20px; background: var(--card-bg-color); border-radius: 12px; }
+        .stat-card .icon { width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-right: 20px; }
+        .stat-card .icon svg { width: 24px; height: 24px; color: var(--card-bg-color); }
+        .stat-card .info .label { font-size: 14px; font-weight: 500; color: var(--text-light); margin: 0; }
+        .stat-card .info .value { font-size: 2.2em; font-weight: 700; color: var(--text-dark); margin: 0; line-height: 1.2; }
+        .stat-card .info .value small { font-size: 0.6em; font-weight: 600; }
+        .icon-satisfaction { background-color: var(--warning-color); }
+        .icon-percent { background-color: var(--success-color); }
+        .icon-respondents { background-color: var(--primary-color); }
+        .summary-section { margin-bottom: 15px; } .summary-section:last-child { margin-bottom: 0; }
+        .summary-section h3 { font-size: 16px; margin: 0 0 8px; color: var(--text-dark); border-left: 3px solid; padding-left: 10px; font-weight: 600; }
+        .summary-section.highest h3 { border-color: var(--success-color); }
+        .summary-section.lowest h3 { border-color: var(--danger-color); }
+        .summary-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; font-size: 15px; border-bottom: 1px solid var(--border-color); }
+        .summary-item:last-child { border-bottom: none; }
+        .summary-item .question-text { color: var(--text-light); padding-right: 15px; }
+        .summary-item .score-text { font-weight: 600; font-size: 1.1em; white-space: nowrap; }
+        .summary-section.highest .score-text { color: var(--success-color); }
+        .summary-section.lowest .score-text { color: var(--danger-color); }
+        .score-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; }
+        .score-item-card { padding: 15px 20px; }
+        .score-item-card .question { font-weight: 500; color: #34495E; margin-bottom: 12px; }
+        .progress-bar-wrapper { display: flex; align-items: center; gap: 15px; }
+        .progress-bg { flex-grow: 1; background-color: #e9ecef; border-radius: 20px; height: 8px; }
+        .progress-fill { height: 100%; border-radius: 20px; transition: width 0.8s ease-in-out; }
+        .progress-fill.green { background: var(--success-color); }
+        .progress-fill.blue { background: var(--primary-color); }
+        .progress-fill.orange { background: var(--warning-color); }
+        .progress-fill.red { background: var(--danger-color); }
+        .score-value { font-size: 1.2em; font-weight: 600; color: var(--text-dark); }
+        #evaluators-table { width: 100%; border-collapse: collapse; }
+        #evaluators-table th, #evaluators-table td { text-align: left; padding: 12px; border-bottom: 1px solid var(--border-color); }
+        #evaluators-table th { font-weight: 600; color: var(--text-dark); background-color: #f8f9fa; }
+        .feedback-list { list-style-type: none; padding: 0; max-height: 500px; overflow-y: auto; margin: 0; }
+        .feedback-item { background: #f8f9fa; padding: 15px 20px; border-radius: 8px; margin-bottom: 12px; border-left: 4px solid var(--primary-color); font-size: 15px; position: relative; }
+        .feedback-item::before { content: '“'; font-size: 3em; color: var(--primary-color); opacity: 0.15; position: absolute; top: -5px; left: 5px; }
+        .survey-item { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 20px; padding: 15px; border-bottom: 1px solid var(--border-color); transition: background-color 0.2s; }
+        .survey-item:last-child { border-bottom: none; } 
+        .survey-item:hover { background-color: #F4F8FD; }
+        .survey-status { display:flex; align-items:center; gap:8px; font-weight:500; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; background-color: var(--text-light); }
+        .status-dot.active { background-color: var(--success-color); }
+        .editor-grid { display: grid; grid-template-columns: 1fr; gap: 20px; }
+        @media (min-width:992px) { .editor-grid { grid-template-columns: 1fr 1fr } }
+        .section-card { border: 1px solid var(--border-color); border-radius: 12px; margin-bottom: 20px; background-color: #fff; overflow: hidden; }
+        .section-header { background-color: #f8f9fa; padding: 10px 15px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+        .section-header input { font-size: 1.1rem; font-weight: 500; border: none; background: 0 0; width: 100%; padding: 5px; }
+        .section-body { padding: 20px; }
+        .question-row { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: start; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px dashed var(--border-color); }
+        .question-row:last-of-type { border-bottom: none; }
+        .toggle-switch { position: relative; display: inline-block; width: 50px; height: 26px; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 26px; }
+        .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+        input:checked + .slider { background-color: var(--success-color); }
+        input:checked + .slider:before { transform: translateX(24px); }
+    </style>
+</head>
+<body>
+    <div id="loadingOverlay" style="display:none;"><div class="spinner"></div><p style="margin-top:15px;"></p></div>
+
+    <div id="login-screen">
+         <div class="login-card">
+            <div class="logo">🔐</div>
+            <h2>Admin Panel</h2>
+            <p>กรุณาใส่รหัสผ่านเพื่อเข้าสู่ระบบ</p>
+            <form id="login-form">
+                <input type="password" id="password-input" placeholder="••••••••" required>
+                <p id="login-error">รหัสผ่านไม่ถูกต้อง!</p>
+                <button type="submit" class="btn btn-primary" style="width:100%; margin-top: 20px; padding: 12px;">เข้าสู่ระบบ</button>
+            </form>
+        </div>
+    </div>
+    
+    <div id="app-container">
+        <aside id="sidebar">
+             <div class="sidebar-header"><h2>Survey System</h2></div>
+            <nav>
+                <a href="#" data-view="dashboard-view"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>สรุปผล</a>
+                <a href="#" data-view="admin-view"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>จัดการแบบสำรวจ</a>
+                <a href="#" data-view="settings-view"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.096 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>ตั้งค่า</a>
+            </nav>
+            <div class="sidebar-footer">
+                <a id="home-link" class="btn" href="#" style="width:100%; justify-content:center;"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h7.5" /></svg>กลับหน้าหลัก</a>
+            </div>
+        </aside>
+        
+        <main id="main-content">
+            <header class="content-header">
+                <h1 id="view-title"></h1>
+                <div id="header-actions"></div>
+            </header>
+            <div id="dashboard-view" class="view-content">
+                <div id="dashboard-content-wrapper"></div>
+            </div>
+            <div id="admin-view" class="view-content">
+                <div id="survey-list-view"></div>
+                <div id="survey-editor-view" style="display:none"></div>
+            </div>
+            <div id="settings-view" class="view-content">
+                <div class="card"><h2>เปลี่ยนรหัสผ่าน</h2><div style="max-width: 450px;"><label for="current-password">รหัสผ่านปัจจุบัน</label><input type="password" id="current-password" autocomplete="off"><label for="new-password" style="margin-top:15px;">รหัสผ่านใหม่ (อย่างน้อย 6 ตัวอักษร)</label><input type="password" id="new-password" autocomplete="off"><label for="confirm-password" style="margin-top:15px;">ยืนยันรหัสผ่านใหม่</label><input type="password" id="confirm-password" autocomplete="off"><button class="btn btn-primary" data-action="change-password" style="margin-top:20px;"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 2zM5.032 3.928a.75.75 0 01.992 1.134l-.865.5a13.328 13.328 0 00-1.082 8.448 9.75 9.75 0 0016.822 0 13.328 13.328 0 00-1.082-8.448l-.865-.5a.75.75 0 11.992-1.134 14.828 14.828 0 011.206 9.408 11.25 11.25 0 01-19.5 0 14.828 14.828 0 011.206-9.408z" /><path d="M10 12.5a.75.75 0 01.75.75v3a.75.75 0 01-1.5 0v-3a.75.75 0 01.75-.75z" /></svg>บันทึกรหัสผ่านใหม่</button></div></div>
+            </div>
+        </main>
+    </div>
+
+<script>
+    const AppState = { surveys: [], allQuestions: [], editingSurvey: null, webAppUrl: '', editingSections: [] };
+    let myChart = null;
+
+    const showLoading = (show, text = 'Loading...') => {
+        const overlay = document.getElementById("loadingOverlay");
+        overlay.querySelector('p').textContent = text;
+        overlay.style.display = show ? "flex" : "none";
+    };
+
+    const switchView = (viewId) => {
+        document.querySelectorAll(".view-content").forEach(el => el.classList.remove("active"));
+        document.querySelectorAll("#sidebar nav a").forEach(el => el.classList.remove("active"));
+        document.getElementById(viewId).classList.add("active");
+        const activeLink = document.querySelector(`#sidebar nav a[data-view="${viewId}"]`);
+        activeLink.classList.add("active");
+        const viewTitles = { 'dashboard-view': 'สรุปผลการประเมิน', 'admin-view': 'จัดการแบบสำรวจ', 'settings-view': 'ตั้งค่าระบบ' };
+        document.getElementById("view-title").textContent = viewTitles[viewId] || 'Dashboard';
+        const headerActions = document.getElementById("header-actions");
+        if(viewId === 'dashboard-view'){
+             headerActions.innerHTML = `<select id="surveySelector" class="btn" style="padding:9px; font-size:15px;"></select>`;
+             populateDashboardSelector();
+             document.getElementById("surveySelector").addEventListener("change", e => loadDashboard(e.target.value));
+             if(AppState.surveys.length > 0) {
+                loadDashboard(document.getElementById("surveySelector").value);
+             } else {
+                document.getElementById('dashboard-content-wrapper').innerHTML = '<div class="card"><p style="text-align:center;">ยังไม่มีแบบสำรวจในระบบ กรุณาสร้างแบบสำรวจก่อน</p></div>';
+             }
+        } else { headerActions.innerHTML = ''; }
+    };
+    
+    function populateDashboardSelector() {
+        const selector = document.getElementById("surveySelector");
+        if(!selector) return;
+        selector.innerHTML = "";
+        if (AppState.surveys && AppState.surveys.length > 0) {
+            const activeSurvey = AppState.surveys.find(s => s.isActive);
+            AppState.surveys.forEach(s => { selector.add(new Option(s.title, s.id)); });
+            selector.value = activeSurvey ? activeSurvey.id : AppState.surveys[0].id;
+        } else { selector.add(new Option("ไม่มีแบบสำรวจ", "")); }
+    }
+
+    async function loadDashboard(surveyId) {
+        const wrapper = document.getElementById("dashboard-content-wrapper");
+        if (!surveyId) { wrapper.innerHTML = '<div class="card"><p style="text-align:center;">กรุณาเลือกแบบสำรวจ</p></div>'; return; }
+        wrapper.innerHTML = `<div class="card" style="text-align:center;"><div class="spinner"></div><p style="margin-top:15px; color: var(--text-light);">กำลังโหลดข้อมูล...</p></div>`;
+        const payload = await new Promise(resolve => google.script.run.withSuccessHandler(resolve).getDashboardPayload({ surveyId }));
+        if (!payload.success || !payload.dashboardData) { wrapper.innerHTML = `<div class="card" style="color:red;"><strong>Error:</strong> ${payload.message || 'Failed to load data.'}</div>`; return; }
+        const data = payload.dashboardData;
+        if (data.noData) { wrapper.innerHTML = '<div class="card"><p style="text-align:center;">ยังไม่มีข้อมูลการตอบกลับสำหรับแบบสำรวจนี้</p></div>'; return; }
+
+        const statsGridHtml = `
+            <div class="stats-grid">
+                <div class="stat-card"><div class="icon icon-respondents"><svg fill="currentColor" viewBox="0 0 20 20"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"></path></svg></div><div class="info"><p class="label">จำนวนผู้ตอบ</p><p class="value">${data.totalResponses}</p></div></div>
+                <div class="stat-card"><div class="icon icon-satisfaction"><svg fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg></div><div class="info"><p class="label">คะแนนเฉลี่ยรวม</p><p class="value">${data.overallAverageScore !== 'N/A' ? data.overallAverageScore : '-'}</p></div></div>
+                <div class="stat-card"><div class="icon icon-percent"><svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg></div><div class="info"><p class="label">ความพึงพอใจ</p><p class="value">${data.overallSatisfactionPercent !== 'N/A' ? data.overallSatisfactionPercent + '<small>%</small>' : '-'}</p></div></div>
+            </div>`;
+            
+        let overviewHtml = '';
+        const summaryData = data.satisfactionSummary;
+        if (summaryData && summaryData.highest && summaryData.highest.length > 0) {
+            let summaryContent = `<div class="summary-section highest"><h3>หัวข้อที่ได้คะแนนสูงสุด</h3>`;
+            summaryData.highest.forEach(item => { summaryContent += `<div class="summary-item"><span class="question-text">${item.question}</span><span class="score-text">${item.score}</span></div>`; });
+            summaryContent += `</div>`;
+            if (summaryData.lowest && summaryData.lowest.length > 0 && summaryData.highest[0].score !== summaryData.lowest[0].score) {
+                summaryContent += `<div class="summary-section lowest" style="margin-top:20px;"><h3>หัวข้อที่ควรพิจารณาปรับปรุง</h3>`;
+                summaryData.lowest.forEach(item => { summaryContent += `<div class="summary-item"><span class="question-text">${item.question}</span><span class="score-text">${item.score}</span></div>`; });
+                summaryContent += `</div>`;
+            }
+            overviewHtml += `<div class="card"><h2>สรุปคะแนนความพึงพอใจ</h2>${summaryContent}</div>`;
+        }
+        if (data.questionLabels && data.questionLabels.length > 0) {
+            let scoreGridHtml = '';
+            data.questionLabels.forEach((label, i) => {
+               const score = parseFloat(data.averageScoresPerQuestion[i]);
+               if(isNaN(score)) return;
+               const percentage = (score / 5) * 100;
+               const colorClass = score >= 4.5 ? 'green' : score >= 3.5 ? 'blue' : score >= 2.5 ? 'orange' : 'red';
+               scoreGridHtml += `<div class="card score-item-card"><div class="question">${label}</div><div class="progress-bar-wrapper"><span class="score-value">${score.toFixed(2)}</span><div class="progress-bg"><div class="progress-fill ${colorClass}" style="width: ${percentage}%;"></div></div></div></div>`;
+            });
+            overviewHtml += `<div class="card"><h2>คะแนนประเมินรายหัวข้อ (ค่าเฉลี่ย)</h2><div class="score-grid">${scoreGridHtml}</div></div>`;
+        } else {
+             overviewHtml += '<div class="card"><p style="text-align:center; color: var(--text-light);">ไม่มีคำถามประเภทให้คะแนนในแบบสำรวจนี้</p></div>';
+        }
+
+        const feedbackHtml = data.feedbackComments && data.feedbackComments.length > 0 
+            ? data.feedbackComments.map(fb => `<li class="feedback-item"><strong>${fb.respondent} (คะแนนเฉลี่ย ${fb.score})</strong><p style="margin-top:8px; color:var(--text-light);">${fb.comment}</p></li>`).join('')
+            : '<li style="text-align:center; padding: 20px; color: var(--text-light);">ยังไม่มีข้อเสนอแนะ</li>';
+
+        let evaluatorsHtml = '';
+        if(data.survey.identifier1_active || data.survey.identifier2_active){
+             let tableRows = data.evaluators.map(p => `<tr><td>${p.identifier1}</td><td>${p.identifier2}</td></tr>`).join('');
+             evaluatorsHtml = `<table id="evaluators-table"><thead><tr><th>${data.survey.identifier1_label || 'Identifier 1'}</th><th>${data.survey.identifier2_label || 'Identifier 2'}</th></tr></thead><tbody>${tableRows}</tbody></table>`;
+        } else {
+             evaluatorsHtml = `<p style="text-align:center; padding: 20px; color: var(--text-light);">แบบสำรวจนี้ไม่ได้เปิดใช้งานการระบุตัวตน</p>`;
+        }
+        
+        wrapper.innerHTML = `${statsGridHtml}<div class="dashboard-tabs"><button class="tab-link active" data-tab="overview">ภาพรวมและผลคะแนน</button><button class="tab-link" data-tab="feedback">ข้อเสนอแนะ</button><button class="tab-link" data-tab="evaluators">รายชื่อผู้ประเมิน</button></div><div id="overview-tab" class="tab-content active">${overviewHtml}</div><div id="feedback-tab" class="tab-content"><div class="card"><h2>ข้อเสนอแนะทั้งหมด (${data.feedbackComments.length})</h2><ul class="feedback-list">${feedbackHtml}</ul></div></div><div id="evaluators-tab" class="tab-content"><div class="card"><h2>รายชื่อผู้ประเมินทั้งหมด (${data.evaluators.length})</h2>${evaluatorsHtml}</div></div>`;
+        
+        document.querySelectorAll('.dashboard-tabs .tab-link').forEach(tab => {
+            tab.addEventListener('click', e => {
+                const tabId = e.currentTarget.dataset.tab;
+                document.querySelectorAll('.dashboard-tabs .tab-link').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                e.currentTarget.classList.add('active');
+                document.getElementById(`${tabId}-tab`).classList.add('active');
+            });
+        });
+    }
+
+    function renderSurveyList() {
+        const view = document.getElementById("survey-list-view");
+        const surveyUrlBase = `${AppState.webAppUrl}?page=survey`;
+        view.innerHTML = `<div class="card"><div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;"><h2>รายการแบบสำรวจทั้งหมด</h2><button class="btn btn-primary" data-action="create-new"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" /></svg>สร้างใหม่</button></div><div id="survey-list">${AppState.surveys.length > 0 ? AppState.surveys.map(s => `<div class="survey-item"><div><strong>${s.title}</strong><br><small style="color:var(--text-light);">ID: ${s.id}</small></div><div class="survey-status"><span class="status-dot ${s.isActive ? "active" : ""}"></span><span>${s.isActive ? "เปิดใช้งาน" : "ปิด"}</span><label class="toggle-switch"><input type="radio" name="active_survey" data-action="toggle-active" data-id="${s.id}" ${s.isActive ? "checked" : ""}> <span class="slider"></span></label></div><div style="display:flex; gap: 8px;"><a href="${surveyUrlBase}&previewId=${s.id}" target="_blank" class="btn" title="ดูตัวอย่าง">👁️</a><button class="btn" data-action="edit" data-id="${s.id}" title="แก้ไข">✏️ แก้ไข</button></div></div>`).join("") : "<p>ยังไม่มีแบบสำรวจในระบบ</p>"}</div></div>`;
+    }
+
+    function renderEditView() {
+        const survey = AppState.editingSurvey;
+        AppState.editingSections = [];
+        const questionsRaw = AppState.allQuestions.filter(q => q.surveyId === survey.id);
+        let currentSection = null;
+        questionsRaw.forEach(q => {
+            if (q.type === 'SECTION_HEADER') {
+                currentSection = { title: q.text, questions: [] };
+                AppState.editingSections.push(currentSection);
+            } else if ((q.type === 'SCALE_QUESTION' || q.type === 'CHOICE_QUESTION') && currentSection) {
+                currentSection.questions.push({ id: q.id || 'new_q' + Date.now(), text: q.text, type: q.type, options: q.options || '' });
+            }
+        });
+
+        const editor = document.getElementById("survey-editor-view");
+        editor.innerHTML = `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;"><h2>${survey.id ? "แก้ไขแบบสำรวจ" : "สร้างแบบสำรวจฉบับใหม่"}</h2><button class="btn btn-danger" data-action="back-to-list"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" /></svg>ปิดตัวแก้ไข</button></div><div class="card"><h3>ข้อมูลทั่วไป</h3><div class="editor-grid"><div><label>ชื่อแบบสำรวจ (Title)</label><input type="text" data-prop="title" value="${survey.title || ""}" required></div><div><label>คำเกริ่นนำ (Intro)</label><textarea rows="3" data-prop="intro">${survey.intro || ""}</textarea></div></div></div><div class="card"><h3>ส่วนแสดงข้อมูลผู้ตอบ</h3><div class="editor-grid"><div><label>หัวข้อ</label><input type="text" data-prop="identifier_header" value="${survey.identifier_header || ""}" placeholder="เช่น ข้อมูลผู้เข้ารับการอบรม"></div><div><label>หัวข้อข้อเสนอแนะ</label><input type="text" data-prop="feedback_header" value="${survey.feedback_header || ""}" placeholder="เช่น ข้อเสนอแนะเพิ่มเติม"></div></div><div style="display:flex; align-items:flex-start; gap: 30px; margin-top:20px; flex-wrap:wrap;"><div><div style="display:flex; align-items:center; gap:10px; margin-bottom: 10px;"><label class="toggle-switch"><input type="checkbox" data-prop-toggle="identifier1_active" ${survey.identifier1_active ? "checked" : ""}><span class="slider"></span></label><label style="margin:0; font-weight:normal;">เปิดใช้งาน คำถามข้อที่ 1</label></div><input type="text" data-prop="identifier1_label" value="${survey.identifier1_label || ""}" placeholder="เช่น ชื่อ-สกุล, โครงการ"></div><div><div style="display:flex; align-items:center; gap:10px; margin-bottom: 10px;"><label class="toggle-switch"><input type="checkbox" data-prop-toggle="identifier2_active" ${survey.identifier2_active ? "checked" : ""}><span class="slider"></span></label><label style="margin:0; font-weight:normal;">เปิดใช้งาน คำถามข้อที่ 2</label></div><input type="text" data-prop="identifier2_label" value="${survey.identifier2_label || ""}" placeholder="เช่น แผนก, เบอร์โทร"></div></div></div><h3>ชุดคำถาม</h3><div id="sections-editor-wrapper">${AppState.editingSections.map((sec, secIdx) => getSectionHTML(sec, secIdx)).join("")}</div><button class="btn" data-action="add-section" style="margin-top: -10px;">+ เพิ่ม Section ใหม่</button><hr style="margin: 25px 0; border: none; border-top: 1px dashed var(--border-color);"><div style="text-align:right;"><button class="btn btn-primary" data-action="save" style="font-size: 16px; padding: 12px 25px;"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width:20px;height:20px;"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>บันทึกข้อมูลทั้งหมด</button></div>`;
+        document.getElementById("survey-list-view").style.display = "none";
+        editor.style.display = "block";
+    }
+
+    function getQuestionHTML(q, secIdx, qIdx) {
+        const optionsInputDisplay = (q.type === 'CHOICE_QUESTION') ? 'block' : 'none';
+        return `<div class="question-row" data-section-index="${secIdx}" data-question-index="${qIdx}"><div style="grid-column: 1 / 2;"><input type="text" data-q-prop="text" value="${q.text}" placeholder="เนื้อหารายการประเมิน..."><input type="text" data-q-prop="options" value="${q.options || ''}" placeholder="ตัวเลือก (คั่นด้วยจุลภาค) เช่น ใช่,ไม่ใช่" style="display:${optionsInputDisplay}; margin-top:8px;"></div><div style="grid-column: 2 / 3;"><select data-q-prop="type" style="padding: 10px 8px; margin-top:5px;"><option value="SCALE_QUESTION" ${q.type === 'SCALE_QUESTION' ? 'selected' : ''}>แบบประเมิน (1-5)</option><option value="CHOICE_QUESTION" ${q.type === 'CHOICE_QUESTION' ? 'selected' : ''}>แบบมีตัวเลือก</option></select></div><div style="grid-column: 3 / 4; align-self:center;"><button class="btn" data-action="delete-q" title="ลบรายการนี้">🗑️</button></div></div>`;
+    }
+
+    function getSectionHTML(sec, secIdx) {
+        return `<div class="section-card" data-section-index="${secIdx}"><div class="section-header"><input type="text" value="${sec.title}" data-s-prop="title" placeholder="ชื่อ Section (เช่น ส่วนที่ 1: ด้านวิทยากร)"><button class="btn" data-action="delete-section" title="ลบ Section นี้">🗑️</button></div><div class="section-body"><div class="questions-wrapper">${(sec.questions || []).map((q, qIdx) => getQuestionHTML(q, secIdx, qIdx)).join("")}</div><button class="btn" data-action="add-q-to-section" style="margin-top:10px;">+ เพิ่มรายการ</button></div></div>`;
+    }
+        
+    const Actions = {
+        async initialize(startView) {
+            showLoading(true);
+            try {
+                const payload = await new Promise((r,j) => google.script.run.withSuccessHandler(r).withFailureHandler(j).getAdminPayload());
+                AppState.surveys = payload.surveys;
+                AppState.allQuestions = payload.allQuestions;
+                AppState.webAppUrl = payload.webAppUrl;
+                document.getElementById("home-link").href = AppState.webAppUrl;
+                renderSurveyList();
+                switchView(startView);
+            } catch (e) { Swal.fire("Error", e.message, "error"); } 
+            finally { showLoading(false); }
+        },
+        createNew() { 
+            AppState.editingSurvey = { id: null, title: "", intro: "", identifier1_active: true, identifier1_label: "ชื่อ-สกุล", identifier2_active: false, identifier2_label: "แผนก/ฝ่าย", identifier_header: "ข้อมูลทั่วไป", feedback_header: "ข้อเสนอแนะเพิ่มเติม" }; 
+            renderEditView(); 
+        },
+        edit(surveyId) { const survey = AppState.surveys.find(s => s.id === surveyId); AppState.editingSurvey = JSON.parse(JSON.stringify(survey)); renderEditView(); },
+        backToList() { document.getElementById("survey-editor-view").style.display = "none"; document.getElementById("survey-list-view").style.display = "block"; AppState.editingSurvey = null; AppState.editingSections = []; },
+        async save() {
+            showLoading(true, "กำลังบันทึก...");
+            try {
+                const flattenedQuestions = []; let order = 0, qCount = 1;
+                AppState.editingSections.forEach(section => {
+                    if (section.title) {
+                        flattenedQuestions.push({ id: `sec${order + 1}`, type: "SECTION_HEADER", text: section.title, order: order++ });
+                        section.questions.forEach(q => { if (q.text) { flattenedQuestions.push({ id: `q${qCount++}`, type: q.type, text: q.text, options: q.options || null, order: order++ }); }});
+                    }
+                });
+                const surveyToSave = AppState.editingSurvey;
+                if (!surveyToSave.title) throw new Error("กรุณากรอกชื่อแบบสำรวจ (Title)");
+                const surveyRes = await new Promise(r => google.script.run.withSuccessHandler(r).saveSurvey(surveyToSave));
+                if (!surveyRes.success) throw new Error(surveyRes.message);
+                const savedSurveyId = surveyRes.surveyId;
+                const questionRes = await new Promise(r => google.script.run.withSuccessHandler(r).saveQuestionsForSurvey(savedSurveyId, flattenedQuestions));
+                if (!questionRes.success) throw new Error(questionRes.message);
+                await this.initialize("admin-view");
+                this.backToList();
+                Swal.fire({ toast: true, position: "top-end", icon: "success", title: "บันทึกเรียบร้อย", showConfirmButton: false, timer: 1500 });
+            } catch (e) { Swal.fire("Error", e.message, "error"); } 
+            finally { showLoading(false); }
+        },
+        async toggleActive(surveyId) {
+            showLoading(true, "กำลังอัปเดต...");
+            try {
+                const res = await new Promise((r,j) => google.script.run.withSuccessHandler(r).withFailureHandler(j).setActiveSurvey(surveyId));
+                if (res.success) { AppState.surveys.forEach(s => s.isActive = s.id === surveyId); } else { throw new Error(res.message); }
+            } catch (e) { Swal.fire("Error", e.message, "error"); await this.initialize("admin-view"); } 
+            finally { showLoading(false); }
+        },
+        async changePassword() {
+            const currentPassword = document.getElementById("current-password").value, newPassword = document.getElementById("new-password").value, confirmPassword = document.getElementById("confirm-password").value;
+            if (!currentPassword || !newPassword || !confirmPassword) { Swal.fire("ข้อมูลไม่ครบ", "กรุณากรอกข้อมูลให้ครบทุกช่อง", "warning"); return; }
+            if (newPassword.length < 6) { Swal.fire("รหัสผ่านสั้นเกินไป", "รหัสผ่านใหม่ต้องมีอย่างน้อย 6 ตัวอักษร", "warning"); return; }
+            if (newPassword !== confirmPassword) { Swal.fire("รหัสผ่านไม่ตรงกัน", "รหัสผ่านใหม่และช่องยืนยันไม่ตรงกัน", "warning"); return; }
+            showLoading(true, "กำลังเปลี่ยนรหัสผ่าน...");
+            try {
+                const res = await new Promise(r => google.script.run.withSuccessHandler(r).updateAdminPassword({currentPassword, newPassword}));
+                if (res.success) { Swal.fire("สำเร็จ", "เปลี่ยนรหัสผ่านเรียบร้อยแล้ว", "success"); ["current-password", "new-password", "confirm-password"].forEach(id => document.getElementById(id).value = "");
+                } else { throw new Error(res.message); }
+            } catch(e) { Swal.fire("ผิดพลาด", e.message, "error"); }
+            finally { showLoading(false); }
+        }
+    };
+
+    document.getElementById("login-form").addEventListener('submit', async (e) => {
+        e.preventDefault(); showLoading(true, 'กำลังตรวจสอบ...');
+        try {
+            const password = document.getElementById("password-input").value;
+            const isValid = await new Promise((r, j) => google.script.run.withSuccessHandler(r).withFailureHandler(j).checkAdminPassword(password));
+            if (isValid) {
+                const loginScreen = document.getElementById("login-screen"); loginScreen.style.opacity = '0';
+                setTimeout(() => { loginScreen.style.display = 'none'; document.getElementById("app-container").style.display = "grid"; }, 500);
+                const urlParams = new URLSearchParams(window.location.search), page = urlParams.get("page") || "dashboard";
+                await Actions.initialize(page.includes("admin") ? "admin-view" : "dashboard-view");
+                document.querySelectorAll("#sidebar nav a").forEach(link => { link.addEventListener("click", e => { e.preventDefault(); if(!link.classList.contains('active')) { switchView(link.dataset.view); } }); });
+            } else { document.getElementById("login-error").style.display = 'block'; document.querySelector('.login-card').animate([ { transform: 'translateX(0)' }, { transform: 'translateX(-10px)' }, { transform: 'translateX(10px)' }, { transform: 'translateX(0)' } ], { duration: 400, easing: 'ease-in-out' }); }
+        } catch(e) { Swal.fire('Login Error', e.message, 'error'); }
+        finally { showLoading(false); }
+    });
+
+    document.addEventListener("click", e => {
+        const t = e.target.closest("[data-action]"); if (!t) return;
+        const action = t.dataset.action;
+        if (action === "change-password") Actions.changePassword(); else if (action === "create-new") Actions.createNew();
+        else if (action === "edit") Actions.edit(t.dataset.id); else if (action === "back-to-list") Actions.backToList();
+        else if (action === "save") Actions.save(); else if (action === "add-section") { AppState.editingSections.push({ title: '', questions: [] }); document.getElementById("sections-editor-wrapper").insertAdjacentHTML('beforeend', getSectionHTML(AppState.editingSections.at(-1), AppState.editingSections.length - 1)); } 
+        else if (action === "delete-section") { const secCard = t.closest(".section-card"), secIdx = secCard.dataset.sectionIndex; AppState.editingSections.splice(secIdx, 1); secCard.remove(); }
+        else if (action === "add-q-to-section") { const secIdx = t.closest(".section-card").dataset.sectionIndex, newQuestion = { id: 'new_q' + Date.now(), text: '', type: 'SCALE_QUESTION', options: '' }, wrapper = t.closest('.section-body').querySelector('.questions-wrapper'); AppState.editingSections[secIdx].questions.push(newQuestion); wrapper.insertAdjacentHTML('beforeend', getQuestionHTML(newQuestion, secIdx, AppState.editingSections[secIdx].questions.length - 1)); } 
+        else if (action === "delete-q") { const qRow = t.closest(".question-row"), {sectionIndex, questionIndex} = qRow.dataset; AppState.editingSections[sectionIndex].questions.splice(questionIndex, 1); qRow.remove(); }
+    });
+
+    document.addEventListener("change", e => {
+        const t = e.target;
+        if (t.dataset.action === "toggle-active" && t.checked) Actions.toggleActive(t.dataset.id);
+        if (t.dataset.propToggle) AppState.editingSurvey[t.dataset.propToggle] = t.checked;
+        if (t.dataset.qProp === "type") {
+             const qRow = t.closest(".question-row"), {sectionIndex, questionIndex} = qRow.dataset;
+             AppState.editingSections[sectionIndex].questions[questionIndex].type = t.value;
+             qRow.querySelector('[data-q-prop="options"]').style.display = t.value === 'CHOICE_QUESTION' ? 'block' : 'none';
+        }
+    });
+
+    document.addEventListener("input", e => {
+        const t = e.target;
+        if (t.dataset.prop) { AppState.editingSurvey[t.dataset.prop] = t.value; }
+        if (t.dataset.sProp) { const secIdx = t.closest('.section-card').dataset.sectionIndex; AppState.editingSections[secIdx][t.dataset.sProp] = t.value; }
+        if (t.dataset.qProp) { const qRow = t.closest(".question-row"), {sectionIndex, questionIndex} = qRow.dataset; AppState.editingSections[sectionIndex].questions[questionIndex][t.dataset.qProp] = t.value; }
+    });
+</script>
+</body>
+</html>
