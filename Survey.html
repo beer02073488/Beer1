@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>แบบประเมินออนไลน์</title>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { 
+            --primary-color: #4A90E2; 
+            --success-color: #27AE60; 
+            --text-dark: #2C3E50; 
+            --bg-color: #f8f9fa; 
+            --border-color: #e3e8ee; 
+            --white-color: #ffffff; 
+            --font-family: 'Kanit', sans-serif; 
+        }
+        body { 
+            font-family: var(--font-family); 
+            background-color: var(--bg-color); 
+            margin: 0; 
+            padding: 25px; 
+            -webkit-font-smoothing: antialiased; 
+            color: var(--text-dark);
+        }
+        .container { 
+            max-width: 900px; 
+            margin: 0 auto; 
+            background-color: var(--white-color); 
+            border-radius: 12px; 
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.05);
+            display: none; /* Initially hidden */
+        }
+        .content-wrapper { padding: 30px 40px; }
+        h1, h2, h3 { color: var(--text-dark); }
+        h1 { font-size: 26px; font-weight: 600; text-align:center; }
+        h2 { font-size: 22px; }
+        h3 { 
+            border-bottom: 2px solid var(--primary-color); 
+            padding-bottom: 8px; 
+            margin-top: 30px; 
+            margin-bottom: 20px;
+            font-size: 18px; 
+            font-weight: 500; 
+        }
+
+        /* --- START: CSS ที่แก้ไข --- */
+        p.intro { 
+            text-align: left; /* เปลี่ยนเป็นชิดซ้าย */
+            white-space: pre-wrap; 
+            margin-bottom: 30px; /* เพิ่มระยะห่างด้านล่าง */
+            color: #34495E;
+            background-color: #f0f6ff; /* เพิ่มสีพื้นหลัง */
+            padding: 15px 20px; /* เพิ่มระยะห่างภายใน */
+            border-radius: 8px; /* ทำให้ขอบมน */
+            border-left: 4px solid var(--primary-color); /* เพิ่มเส้นขอบด้านซ้าย */
+            line-height: 1.7; /* ปรับความสูงระหว่างบรรทัดให้อ่านง่าย */
+        }
+        /* --- END: CSS ที่แก้ไข --- */
+
+        label { font-weight: 500; display: block; margin-bottom: 8px; color: #34495E; font-size: 15px;}
+        input[type="text"], textarea { 
+            width: 100%; 
+            padding: 12px; 
+            margin-bottom: 15px; 
+            border: 1px solid var(--border-color); 
+            border-radius: 8px; 
+            font-size: 14px; 
+            font-family: var(--font-family);
+            box-sizing: border-box;
+        }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 15px; }
+        th, td { padding: 12px 15px; text-align: center; border: 1px solid var(--border-color); }
+        th { background-color: var(--primary-color); color: white; font-size: 14px; font-weight: 500; }
+        td:first-child { text-align: left; width: 60%; }
+
+        .choice-question-group { margin-bottom: 20px; }
+        .choice-question-group .question-text { font-weight: 500; margin-bottom: 12px; }
+        .choice-options { display: flex; flex-wrap: wrap; gap: 12px; }
+        input[type="radio"] { accent-color: var(--primary-color); margin-right: 5px; transform: scale(1.1); }
+        
+        .submit-btn { 
+            background: linear-gradient(135deg, var(--success-color), #228f3a); 
+            color: white; 
+            padding: 15px; 
+            border: none; 
+            border-radius: 8px; 
+            font-size: 16px; 
+            font-weight: 600; 
+            width: 100%; 
+            cursor: pointer; 
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .submit-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+
+        #loadingOverlay { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.6); 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            flex-direction: column;
+            z-index: 2000; color:white; 
+        }
+        .spinner { 
+            width: 50px; height: 50px; 
+            border: 5px solid rgba(255,255,255,0.3); 
+            border-top: 5px solid white; 
+            border-radius: 50%; 
+            animation: spin 1s linear infinite; 
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .thank-you-view { text-align: center; padding: 60px 20px; }
+        .success-icon { color: var(--success-color); width: 80px; height: 80px; }
+        .btn-reload {
+            display: inline-block;
+            text-decoration: none;
+            background-color: transparent;
+            color: var(--primary-color);
+            border: 2px solid var(--primary-color);
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 15px;
+            font-family: var(--font-family);
+            margin-top: 30px;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+        }
+        .btn-reload:hover {
+            background-color: var(--primary-color);
+            color: var(--white-color);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+        }
+    </style>
+</head>
+<body>
+<div id="loadingOverlay">
+    <div class="spinner"></div>
+    <span id="loadingText" style="margin-top: 15px;">กำลังโหลดแบบสำรวจ...</span>
+</div>
+
+<div class="container">
+    <div class="content-wrapper">
+        <div id="form-container">
+            <img src="https://i.postimg.cc/cC36Dyhn/LOGO-MAIL-IPO.jpg" alt="โลโก้บริษัท" style="display:block; margin:0 auto 20px; max-width:850px;">
+            <form id="mainForm">
+                <h1 id="surveyTitle"></h1>
+                <p class="intro" id="surveyIntro"></p>
+                <input type="hidden" id="surveyId">
+                <div id="identifier-section"></div>
+                <div id="sections-wrapper"></div>
+                <div id="feedback-section"></div>
+                <button type="submit" class="submit-btn">ส่งข้อมูล</button>
+            </form>
+        </div>
+
+        <div id="thankYouMessage" style="display:none;" class="thank-you-view">
+             <svg class="success-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+                <circle cx="26" cy="26" r="25" fill="none" stroke="currentColor" stroke-width="2"/>
+                <path fill="none" stroke="currentColor" stroke-width="3" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+             </svg>
+             <h2 style="color: var(--success-color); margin-top: 20px; font-size: 24px;">ส่งข้อมูลสำเร็จ!</h2>
+             <p style="font-size: 16px; color: #555; line-height: 1.6;">
+                ขอบคุณที่สละเวลาตอบแบบประเมิน<br>เราได้รับข้อมูลของท่านเรียบร้อยแล้ว
+             </p>
+             <button type="button" id="reloadButton" class="btn-reload">กลับไปประเมินอีกครั้ง</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    async function api(action, payload = {}) {
+        return new Promise((resolve, reject) => {
+            google.script.run
+                .withSuccessHandler(resolve)
+                .withFailureHandler(reject)
+                [action](payload);
+        });
+    }
+
+    const App = {
+        state: {},
+        async init() {
+            try {
+                const urlParams = new URLSearchParams(window.location.search);
+                const previewId = urlParams.get('previewId');
+                const payload = await api('getUniversalPayload', { previewId });
+
+                if (!payload.success) throw new Error(payload.message);
+                
+                this.state.survey = payload.survey;
+                this.state.sections = payload.sections;
+                
+                this.renderForm();
+                document.querySelector('.container').style.display = 'block';
+
+                document.getElementById('mainForm').addEventListener('submit', this.handleSubmit.bind(this));
+                document.getElementById('reloadButton').addEventListener('click', this.resetAndShowForm.bind(this));
+
+            } catch (err) {
+                this.handleError(err);
+            } finally {
+                this.hideLoading();
+            }
+        },
+        renderForm() {
+            const { survey, sections } = this.state;
+            document.getElementById('surveyTitle').textContent = survey.title;
+            // แก้ไขการแสดงผลข้อความหลายบรรทัด
+            const introText = survey.intro || '';
+            document.getElementById('surveyIntro').innerText = introText;
+            if(!introText) document.getElementById('surveyIntro').style.display = 'none';
+
+            document.getElementById('surveyId').value = survey.id;
+            this.renderIdentifiers(survey);
+            this.renderQuestions(sections);
+            this.renderFeedback(survey);
+        },
+        
+        resetAndShowForm() {
+            document.getElementById('thankYouMessage').style.display = 'none';
+            this.renderForm();
+            document.getElementById('form-container').style.display = 'block';
+        },
+
+        renderIdentifiers(survey) {
+            const wrapper = document.getElementById('identifier-section');
+            if (!survey.identifier1_active && !survey.identifier2_active) {
+                wrapper.style.display = 'none'; return;
+            }
+            let html = `<h3>${survey.identifier_header || 'ข้อมูลผู้ประเมิน'}</h3>`;
+            if (survey.identifier1_active) {
+                html += `<label for="identifier1">${survey.identifier1_label}</label><input type="text" id="identifier1" placeholder="กรุณากรอก${survey.identifier1_label}" required>`;
+            }
+            if (survey.identifier2_active) {
+                html += `<label for="identifier2">${survey.identifier2_label}</label><input type="text" id="identifier2" placeholder="กรุณากรอก${survey.identifier2_label}" required>`;
+            }
+            wrapper.innerHTML = html;
+        },
+
+        renderQuestions(sections) {
+            const wrapper = document.getElementById('sections-wrapper');
+            wrapper.innerHTML = '';
+            sections.forEach(section => {
+                const scaleQuestions = section.questions.filter(q => q.type === 'SCALE_QUESTION');
+                const choiceQuestions = section.questions.filter(q => q.type === 'CHOICE_QUESTION');
+                let sectionHtml = `<h3>${section.title}</h3>`;
+                if (scaleQuestions.length > 0) {
+                    let tableRows = scaleQuestions.map(q => `<tr><td>${q.text}</td>${[5,4,3,2,1].map(score => `<td><input type="radio" name="${q.id}" value="${score}" required></td>`).join('')}</tr>`).join('');
+                    sectionHtml += `<table><thead><tr><th rowspan="2">รายการประเมิน</th><th colspan="5">ระดับความพึงพอใจ</th></tr><tr><th>5</th><th>4</th><th>3</th><th>2</th><th>1</th></tr></thead><tbody>${tableRows}</tbody></table>`;
+                }
+                if (choiceQuestions.length > 0) {
+                    sectionHtml += choiceQuestions.map(q => {
+                       const options = q.options ? q.options.split(',').map(o => o.trim()) : [];
+                       if (options.length === 0) return '';
+                       return `<div class="choice-question-group"><div class="question-text">${q.text}</div><div class="choice-options">${options.map(opt => `<label><input type="radio" name="${q.id}" value="${opt}" required> ${opt}</label>`).join('')}</div></div>`;
+                    }).join('');
+                }
+                wrapper.innerHTML += sectionHtml;
+            });
+        },
+        
+        renderFeedback(survey) {
+            document.getElementById('feedback-section').innerHTML = `<h3>${survey.feedback_header || 'ข้อเสนอแนะเพิ่มเติม'}</h3><textarea id="feedbackText" rows="5" placeholder="ความคิดเห็นเพิ่มเติมเพื่อการพัฒนา"></textarea>`;
+        },
+
+        async handleSubmit(e) {
+            e.preventDefault();
+            this.showLoading('กำลังส่งข้อมูล...');
+            const payload = {
+                surveyId: document.getElementById('surveyId').value,
+                identifier1_response: document.getElementById('identifier1')?.value.trim() || null,
+                identifier2_response: document.getElementById('identifier2')?.value.trim() || null,
+                feedbackText: document.getElementById('feedbackText').value.trim(),
+                responses: []
+            };
+            this.state.sections.forEach(sec => sec.questions.forEach(q => {
+                const checked = document.querySelector(`input[name="${q.id}"]:checked`);
+                if (checked) payload.responses.push([q.id, checked.value]);
+            }));
+
+            try {
+                const result = await api('submitFeedback', payload);
+                 if (result.success) {
+                    document.getElementById('form-container').style.display = 'none';
+                    document.getElementById('thankYouMessage').style.display = 'block';
+                } else { throw new Error(result.message || "เกิดข้อผิดพลาดไม่ทราบสาเหตุ"); }
+            } catch (err) {
+                 alert('เกิดข้อผิดพลาดในการส่งข้อมูล: ' + err.message);
+            } finally {
+                this.hideLoading();
+            }
+        },
+        
+        showLoading(text) {
+            document.getElementById('loadingOverlay').style.display = 'flex';
+            document.getElementById('loadingText').textContent = text;
+        },
+        hideLoading() {
+             document.getElementById('loadingOverlay').style.display = 'none';
+        },
+        handleError(err) {
+             const container = document.querySelector('.container');
+             const wrapper = document.querySelector('.content-wrapper');
+             wrapper.innerHTML = `<div class="thank-you-view"><h2 style="color: #E74C3C;">เกิดข้อผิดพลาด</h2><p>ไม่สามารถโหลดแบบสำรวจได้</p><p style="color:#777; font-size: 14px;"><strong>ข้อความจากระบบ:</strong> ${err.message}</p></div>`;
+             container.style.display = 'block';
+        }
+    };
+
+    document.addEventListener('DOMContentLoaded', () => App.init());
+</script>
+
+</body>
+</html>
