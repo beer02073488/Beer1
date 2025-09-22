@@ -94,7 +94,7 @@ function getDashboardPayload(filters) {
       if (survey.identifier1_active || survey.identifier2_active) {
           evaluators.push({
             identifier1: (identifier1Index !== undefined && row[identifier1Index]) ? row[identifier1Index] : "ไม่ระบุ",
-            identifier2: (identifier2Index !== undefined && row[identifier2Index]) ? row[identifier2Index] : "ไม่ระบุ"
+            identifier2: (identifier2Index !== undefined && row[identifier2Index]) ? row[identifier2Index] : "ไม่ระระบุ"
           });
       }
       if (feedbackIndex !== undefined && row[feedbackIndex] && row[feedbackIndex].toString().trim() !== "-") {
