@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>แบบประเมินออนไลน์</title>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         :root { 
             --primary-color: #4A90E2; 
@@ -287,9 +288,11 @@
                  if (result.success) {
                     document.getElementById('form-container').style.display = 'none';
                     document.getElementById('thankYouMessage').style.display = 'block';
-                } else { throw new Error(result.message || "เกิดข้อผิดพลาดไม่ทราบสาเหตุ"); }
+                } else { 
+                    Swal.fire('Error', result.message || "เกิดข้อผิดพลาดไม่ทราบสาเหตุ", 'error');
+                }
             } catch (err) {
-                 alert('เกิดข้อผิดพลาดในการส่งข้อมูล: ' + err.message);
+                 Swal.fire('Error', 'เกิดข้อผิดพลาดในการส่งข้อมูล: ' + err.message, 'error');
             } finally {
                 this.hideLoading();
             }
@@ -312,6 +315,5 @@
 
     document.addEventListener('DOMContentLoaded', () => App.init());
 </script>
-
 </body>
 </html>
