@@ -120,6 +120,17 @@
              padding: 40px;
              color: #D32F2F;
         }
+        
+        /* CSS เพิ่มเติมสำหรับสถานะโหลด */
+        .loading-text {
+            text-align: center;
+            color: var(--text-secondary);
+            margin-top: 10px;
+        }
+        .action-btn.disabled {
+            pointer-events: none;
+            opacity: 0.6;
+        }
 
         @media (max-width: 768px) {
             body { padding: 0; }
@@ -139,7 +150,8 @@
         <p>ยินดีต้อนรับ<br>กรุณาเลือกรายการที่ต้องการเพื่อเริ่มต้นใช้งาน</p>
     </div>
     <div class="action-panel">
-        <a id="survey-link" href="#" class="action-btn survey">
+        <p class="loading-text" id="loading-message">กำลังโหลด...</p>
+        <a id="survey-link" href="#" class="action-btn survey disabled">
             <div class="btn-icon">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
@@ -150,7 +162,7 @@
                 <span>สำหรับผู้ใช้งานทั่วไป</span>
             </div>
         </a>
-        <a id="admin-link" href="#" class="action-btn admin">
+        <a id="admin-link" href="#" class="action-btn admin disabled">
             <div class="btn-icon">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6a7.5 7.5 0 100 15 7.5 7.5 0 000-15zM21 21l-5.197-5.197M13.282 7.032a3.75 3.75 0 015.684 0l.004.003.004.004a3.75 3.75 0 010 5.684l-.004.004-.004.003a3.75 3.75 0 01-5.684 0l-.004-.003-.004-.004a3.75 3.75 0 010-5.684l.004-.004.004-.003z" />
@@ -170,12 +182,18 @@
 
         google.script.run
             .withSuccessHandler(url => {
+                // When URL is successfully fetched, enable the links
                 if (url) {
                     document.getElementById('survey-link').href = url + '?page=survey';
                     document.getElementById('admin-link').href = url + '?page=admin';
+                    document.getElementById('survey-link').classList.remove('disabled');
+                    document.getElementById('admin-link').classList.remove('disabled');
+                    document.getElementById('loading-message').style.display = 'none';
                 }
             })
             .withFailureHandler(err => {
+                // If there's an error, show a message and disable the links
+                document.getElementById('loading-message').style.display = 'none';
                 document.body.innerHTML = `<div class="error-message"><h1>เกิดข้อผิดพลาด</h1><p>${err.message || 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้'}</p></div>`;
             })
             .getWebAppUrl();
