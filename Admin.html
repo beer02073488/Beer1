@@ -282,35 +282,107 @@
         const surveyUrlBase = `${AppState.webAppUrl}?page=survey`;
         view.innerHTML = `<div class="card"><div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;"><h2>รายการแบบสำรวจทั้งหมด</h2><button class="btn btn-primary" data-action="create-new"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" /></svg>สร้างใหม่</button></div><div id="survey-list">${AppState.surveys.length > 0 ? AppState.surveys.map(s => `<div class="survey-item"><div><strong>${s.title}</strong><br><small style="color:var(--text-light);">ID: ${s.id}</small></div><div class="survey-status"><span class="status-dot ${s.isActive ? "active" : ""}"></span><span>${s.isActive ? "เปิดใช้งาน" : "ปิด"}</span><label class="toggle-switch"><input type="radio" name="active_survey" data-action="toggle-active" data-id="${s.id}" ${s.isActive ? "checked" : ""}> <span class="slider"></span></label></div><div style="display:flex; gap: 8px;"><a href="${surveyUrlBase}&previewId=${s.id}" target="_blank" class="btn" title="ดูตัวอย่าง">👁️</a><button class="btn" data-action="edit" data-id="${s.id}" title="แก้ไข">✏️ แก้ไข</button></div></div>`).join("") : "<p>ยังไม่มีแบบสำรวจในระบบ</p>"}</div></div>`;
     }
-
+    
+    // START: โค้ดส่วนแก้ไขและจัดการแบบสำรวจ
     function renderEditView() {
-        const survey = AppState.editingSurvey;
-        AppState.editingSections = [];
-        const questionsRaw = AppState.allQuestions.filter(q => q.surveyId === survey.id);
-        let currentSection = null;
-        questionsRaw.forEach(q => {
-            if (q.type === 'SECTION_HEADER') {
-                currentSection = { title: q.text, questions: [] };
-                AppState.editingSections.push(currentSection);
-            } else if ((q.type === 'SCALE_QUESTION' || q.type === 'CHOICE_QUESTION') && currentSection) {
-                currentSection.questions.push({ id: q.id || 'new_q' + Date.now(), text: q.text, type: q.type, options: q.options || '' });
-            }
-        });
-
         const editor = document.getElementById("survey-editor-view");
-        editor.innerHTML = `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;"><h2>${survey.id ? "แก้ไขแบบสำรวจ" : "สร้างแบบสำรวจฉบับใหม่"}</h2><button class="btn btn-danger" data-action="back-to-list"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" /></svg>ปิดตัวแก้ไข</button></div><div class="card"><h3>ข้อมูลทั่วไป</h3><div class="editor-grid"><div><label>ชื่อแบบสำรวจ (Title)</label><input type="text" data-prop="title" value="${survey.title || ""}" required></div><div><label>คำเกริ่นนำ (Intro)</label><textarea rows="3" data-prop="intro">${survey.intro || ""}</textarea></div></div></div><div class="card"><h3>ส่วนแสดงข้อมูลผู้ตอบ</h3><div class="editor-grid"><div><label>หัวข้อ</label><input type="text" data-prop="identifier_header" value="${survey.identifier_header || ""}" placeholder="เช่น ข้อมูลผู้เข้ารับการอบรม"></div><div><label>หัวข้อข้อเสนอแนะ</label><input type="text" data-prop="feedback_header" value="${survey.feedback_header || ""}" placeholder="เช่น ข้อเสนอแนะเพิ่มเติม"></div></div><div style="display:flex; align-items:flex-start; gap: 30px; margin-top:20px; flex-wrap:wrap;"><div><div style="display:flex; align-items:center; gap:10px; margin-bottom: 10px;"><label class="toggle-switch"><input type="checkbox" data-prop-toggle="identifier1_active" ${survey.identifier1_active ? "checked" : ""}><span class="slider"></span></label><label style="margin:0; font-weight:normal;">เปิดใช้งาน คำถามข้อที่ 1</label></div><input type="text" data-prop="identifier1_label" value="${survey.identifier1_label || ""}" placeholder="เช่น ชื่อ-สกุล, โครงการ"></div><div><div style="display:flex; align-items:center; gap:10px; margin-bottom: 10px;"><label class="toggle-switch"><input type="checkbox" data-prop-toggle="identifier2_active" ${survey.identifier2_active ? "checked" : ""}><span class="slider"></span></label><label style="margin:0; font-weight:normal;">เปิดใช้งาน คำถามข้อที่ 2</label></div><input type="text" data-prop="identifier2_label" value="${survey.identifier2_label || ""}" placeholder="เช่น แผนก, เบอร์โทร"></div></div></div><h3>ชุดคำถาม</h3><div id="sections-editor-wrapper">${AppState.editingSections.map((sec, secIdx) => getSectionHTML(sec, secIdx)).join("")}</div><button class="btn" data-action="add-section" style="margin-top: -10px;">+ เพิ่ม Section ใหม่</button><hr style="margin: 25px 0; border: none; border-top: 1px dashed var(--border-color);"><div style="text-align:right;"><button class="btn btn-primary" data-action="save" style="font-size: 16px; padding: 12px 25px;"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width:20px;height:20px;"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>บันทึกข้อมูลทั้งหมด</button></div>`;
-        document.getElementById("survey-list-view").style.display = "none";
         editor.style.display = "block";
+        document.getElementById("survey-list-view").style.display = "none";
+        renderEditorContent();
+    }
+
+    function renderEditorContent() {
+        const survey = AppState.editingSurvey;
+        const editor = document.getElementById("survey-editor-view");
+        editor.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+                <h2>${survey.id ? "แก้ไขแบบสำรวจ" : "สร้างแบบสำรวจฉบับใหม่"}</h2>
+                <button class="btn btn-danger" data-action="back-to-list">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" /></svg>
+                    ปิดตัวแก้ไข
+                </button>
+            </div>
+            <div class="card">
+                <h3>ข้อมูลทั่วไป</h3>
+                <div class="editor-grid">
+                    <div><label>ชื่อแบบสำรวจ (Title)</label><input type="text" data-prop="title" value="${survey.title || ""}" required></div>
+                    <div><label>คำเกริ่นนำ (Intro)</label><textarea rows="3" data-prop="intro">${survey.intro || ""}</textarea></div>
+                </div>
+            </div>
+            <div class="card">
+                <h3>ส่วนแสดงข้อมูลผู้ตอบ</h3>
+                <div class="editor-grid">
+                    <div><label>หัวข้อ</label><input type="text" data-prop="identifier_header" value="${survey.identifier_header || ""}" placeholder="เช่น ข้อมูลผู้เข้ารับการอบรม"></div>
+                    <div><label>หัวข้อข้อเสนอแนะ</label><input type="text" data-prop="feedback_header" value="${survey.feedback_header || ""}" placeholder="เช่น ข้อเสนอแนะเพิ่มเติม"></div>
+                </div>
+                <div style="display:flex; align-items:flex-start; gap: 30px; margin-top:20px; flex-wrap:wrap;">
+                    <div>
+                        <div style="display:flex; align-items:center; gap:10px; margin-bottom: 10px;">
+                            <label class="toggle-switch"><input type="checkbox" data-prop-toggle="identifier1_active" ${survey.identifier1_active ? "checked" : ""}><span class="slider"></span></label>
+                            <label style="margin:0; font-weight:normal;">เปิดใช้งาน คำถามข้อที่ 1</label>
+                        </div>
+                        <input type="text" data-prop="identifier1_label" value="${survey.identifier1_label || ""}" placeholder="เช่น ชื่อ-สกุล, โครงการ">
+                    </div>
+                    <div>
+                        <div style="display:flex; align-items:center; gap:10px; margin-bottom: 10px;">
+                            <label class="toggle-switch"><input type="checkbox" data-prop-toggle="identifier2_active" ${survey.identifier2_active ? "checked" : ""}><span class="slider"></span></label>
+                            <label style="margin:0; font-weight:normal;">เปิดใช้งาน คำถามข้อที่ 2</label>
+                        </div>
+                        <input type="text" data-prop="identifier2_label" value="${survey.identifier2_label || ""}" placeholder="เช่น แผนก, เบอร์โทร">
+                    </div>
+                </div>
+            </div>
+            <h3>ชุดคำถาม</h3>
+            <div id="sections-editor-wrapper">
+                ${AppState.editingSections.map((sec, secIdx) => getSectionHTML(sec, secIdx)).join("")}
+            </div>
+            <button class="btn" data-action="add-section" style="margin-top: -10px;">+ เพิ่ม Section ใหม่</button>
+            <hr style="margin: 25px 0; border: none; border-top: 1px dashed var(--border-color);">
+            <div style="text-align:right;">
+                <button class="btn btn-primary" data-action="save" style="font-size: 16px; padding: 12px 25px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width:20px;height:20px;">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                    </svg>
+                    บันทึกข้อมูลทั้งหมด
+                </button>
+            </div>
+        `;
     }
 
     function getQuestionHTML(q, secIdx, qIdx) {
         const optionsInputDisplay = (q.type === 'CHOICE_QUESTION') ? 'block' : 'none';
-        return `<div class="question-row" data-section-index="${secIdx}" data-question-index="${qIdx}"><div style="grid-column: 1 / 2;"><input type="text" data-q-prop="text" value="${q.text}" placeholder="เนื้อหารายการประเมิน..."><input type="text" data-q-prop="options" value="${q.options || ''}" placeholder="ตัวเลือก (คั่นด้วยจุลภาค) เช่น ใช่,ไม่ใช่" style="display:${optionsInputDisplay}; margin-top:8px;"></div><div style="grid-column: 2 / 3;"><select data-q-prop="type" style="padding: 10px 8px; margin-top:5px;"><option value="SCALE_QUESTION" ${q.type === 'SCALE_QUESTION' ? 'selected' : ''}>แบบประเมิน (1-5)</option><option value="CHOICE_QUESTION" ${q.type === 'CHOICE_QUESTION' ? 'selected' : ''}>แบบมีตัวเลือก</option></select></div><div style="grid-column: 3 / 4; align-self:center;"><button class="btn" data-action="delete-q" title="ลบรายการนี้">🗑️</button></div></div>`;
+        return `<div class="question-row" data-section-index="${secIdx}" data-question-index="${qIdx}">
+            <div style="grid-column: 1 / 2;">
+                <input type="text" data-q-prop="text" value="${q.text}" placeholder="เนื้อหารายการประเมิน...">
+                <input type="text" data-q-prop="options" value="${q.options || ''}" placeholder="ตัวเลือก (คั่นด้วยจุลภาค) เช่น ใช่,ไม่ใช่" style="display:${optionsInputDisplay}; margin-top:8px;">
+            </div>
+            <div style="grid-column: 2 / 3;">
+                <select data-q-prop="type" style="padding: 10px 8px; margin-top:5px;">
+                    <option value="SCALE_QUESTION" ${q.type === 'SCALE_QUESTION' ? 'selected' : ''}>แบบประเมิน (1-5)</option>
+                    <option value="CHOICE_QUESTION" ${q.type === 'CHOICE_QUESTION' ? 'selected' : ''}>แบบมีตัวเลือก</option>
+                </select>
+            </div>
+            <div style="grid-column: 3 / 4; align-self:center;">
+                <button class="btn" data-action="delete-q" title="ลบรายการนี้">🗑️</button>
+            </div>
+        </div>`;
     }
 
     function getSectionHTML(sec, secIdx) {
-        return `<div class="section-card" data-section-index="${secIdx}"><div class="section-header"><input type="text" value="${sec.title}" data-s-prop="title" placeholder="ชื่อ Section (เช่น ส่วนที่ 1: ด้านวิทยากร)"><button class="btn" data-action="delete-section" title="ลบ Section นี้">🗑️</button></div><div class="section-body"><div class="questions-wrapper">${(sec.questions || []).map((q, qIdx) => getQuestionHTML(q, secIdx, qIdx)).join("")}</div><button class="btn" data-action="add-q-to-section" style="margin-top:10px;">+ เพิ่มรายการ</button></div></div>`;
+        return `<div class="section-card" data-section-index="${secIdx}">
+            <div class="section-header">
+                <input type="text" value="${sec.title}" data-s-prop="title" placeholder="ชื่อ Section (เช่น ส่วนที่ 1: ด้านวิทยากร)">
+                <button class="btn" data-action="delete-section" title="ลบ Section นี้">🗑️</button>
+            </div>
+            <div class="section-body">
+                <div class="questions-wrapper">
+                    ${(sec.questions || []).map((q, qIdx) => getQuestionHTML(q, secIdx, qIdx)).join("")}
+                </div>
+                <button class="btn" data-action="add-q-to-section" style="margin-top:10px;">+ เพิ่มรายการ</button>
+            </div>
+        </div>`;
     }
+    // END: โค้ดส่วนแก้ไขและจัดการแบบสำรวจ
         
     const Actions = {
         async initialize(startView) {
@@ -328,10 +400,32 @@
         },
         createNew() { 
             AppState.editingSurvey = { id: null, title: "", intro: "", identifier1_active: true, identifier1_label: "ชื่อ-สกุล", identifier2_active: false, identifier2_label: "แผนก/ฝ่าย", identifier_header: "ข้อมูลทั่วไป", feedback_header: "ข้อเสนอแนะเพิ่มเติม" }; 
+            AppState.editingSections = [];
             renderEditView(); 
         },
-        edit(surveyId) { const survey = AppState.surveys.find(s => s.id === surveyId); AppState.editingSurvey = JSON.parse(JSON.stringify(survey)); renderEditView(); },
-        backToList() { document.getElementById("survey-editor-view").style.display = "none"; document.getElementById("survey-list-view").style.display = "block"; AppState.editingSurvey = null; AppState.editingSections = []; },
+        edit(surveyId) { 
+            const survey = AppState.surveys.find(s => s.id === surveyId); 
+            AppState.editingSurvey = JSON.parse(JSON.stringify(survey)); 
+            
+            AppState.editingSections = [];
+            const questionsRaw = AppState.allQuestions.filter(q => q.surveyId === survey.id);
+            let currentSection = null;
+            questionsRaw.forEach(q => {
+                if (q.type === 'SECTION_HEADER') {
+                    currentSection = { title: q.text, questions: [] };
+                    AppState.editingSections.push(currentSection);
+                } else if ((q.type === 'SCALE_QUESTION' || q.type === 'CHOICE_QUESTION') && currentSection) {
+                    currentSection.questions.push({ id: q.id || 'new_q' + Date.now(), text: q.text, type: q.type, options: q.options || '' });
+                }
+            });
+            renderEditView(); 
+        },
+        backToList() { 
+            document.getElementById("survey-editor-view").style.display = "none"; 
+            document.getElementById("survey-list-view").style.display = "block"; 
+            AppState.editingSurvey = null; 
+            AppState.editingSections = []; 
+        },
         async save() {
             showLoading(true, "กำลังบันทึก...");
             try {
@@ -365,7 +459,8 @@
         },
         async changePassword() {
             const currentPassword = document.getElementById("current-password").value, newPassword = document.getElementById("new-password").value, confirmPassword = document.getElementById("confirm-password").value;
-            if (!currentPassword || !newPassword || !confirmPassword) { Swal.fire("ข้อมูลไม่ครบ", "กรุณากรอกข้อมูลให้ครบทุกช่อง", "warning"); return; }
+            if (!currentPassword || !newPassword || !confirmPassword) { Swal.fire("ข้อมูลไม่ครบ", "กรุณา
+กรอกข้อมูลให้ครบทุกช่อง", "warning"); return; }
             if (newPassword.length < 6) { Swal.fire("รหัสผ่านสั้นเกินไป", "รหัสผ่านใหม่ต้องมีอย่างน้อย 6 ตัวอักษร", "warning"); return; }
             if (newPassword !== confirmPassword) { Swal.fire("รหัสผ่านไม่ตรงกัน", "รหัสผ่านใหม่และช่องยืนยันไม่ตรงกัน", "warning"); return; }
             showLoading(true, "กำลังเปลี่ยนรหัสผ่าน...");
@@ -389,9 +484,15 @@
                 const urlParams = new URLSearchParams(window.location.search), page = urlParams.get("page") || "dashboard";
                 await Actions.initialize(page.includes("admin") ? "admin-view" : "dashboard-view");
                 document.querySelectorAll("#sidebar nav a").forEach(link => { link.addEventListener("click", e => { e.preventDefault(); if(!link.classList.contains('active')) { switchView(link.dataset.view); } }); });
-            } else { document.getElementById("login-error").style.display = 'block'; document.querySelector('.login-card').animate([ { transform: 'translateX(0)' }, { transform: 'translateX(-10px)' }, { transform: 'translateX(10px)' }, { transform: 'translateX(0)' } ], { duration: 400, easing: 'ease-in-out' }); }
-        } catch(e) { Swal.fire('Login Error', e.message, 'error'); }
-        finally { showLoading(false); }
+            } else { 
+                document.getElementById("login-error").style.display = 'block'; 
+                document.querySelector('.login-card').animate([ { transform: 'translateX(0)' }, { transform: 'translateX(-10px)' }, { transform: 'translateX(10px)' }, { transform: 'translateX(0)' } ], { duration: 400, easing: 'ease-in-out' });
+            }
+        } catch(e) { 
+            Swal.fire('Connection Error', 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ ลองตรวจสอบการตั้งค่า Deploy Web App และการเชื่อมต่ออินเทอร์เน็ต', 'error');
+        } finally { 
+            showLoading(false); 
+        }
     });
 
     document.addEventListener("click", e => {
@@ -399,16 +500,35 @@
         const action = t.dataset.action;
         if (action === "change-password") Actions.changePassword(); else if (action === "create-new") Actions.createNew();
         else if (action === "edit") Actions.edit(t.dataset.id); else if (action === "back-to-list") Actions.backToList();
-        else if (action === "save") Actions.save(); else if (action === "add-section") { AppState.editingSections.push({ title: '', questions: [] }); document.getElementById("sections-editor-wrapper").insertAdjacentHTML('beforeend', getSectionHTML(AppState.editingSections.at(-1), AppState.editingSections.length - 1)); } 
-        else if (action === "delete-section") { const secCard = t.closest(".section-card"), secIdx = secCard.dataset.sectionIndex; AppState.editingSections.splice(secIdx, 1); secCard.remove(); }
-        else if (action === "add-q-to-section") { const secIdx = t.closest(".section-card").dataset.sectionIndex, newQuestion = { id: 'new_q' + Date.now(), text: '', type: 'SCALE_QUESTION', options: '' }, wrapper = t.closest('.section-body').querySelector('.questions-wrapper'); AppState.editingSections[secIdx].questions.push(newQuestion); wrapper.insertAdjacentHTML('beforeend', getQuestionHTML(newQuestion, secIdx, AppState.editingSections[secIdx].questions.length - 1)); } 
-        else if (action === "delete-q") { const qRow = t.closest(".question-row"), {sectionIndex, questionIndex} = qRow.dataset; AppState.editingSections[sectionIndex].questions.splice(questionIndex, 1); qRow.remove(); }
+        else if (action === "save") Actions.save(); 
+        else if (action === "add-section") { 
+            AppState.editingSections.push({ title: '', questions: [] }); 
+            renderEditorContent(); 
+        } 
+        else if (action === "delete-section") { 
+            const secCard = t.closest(".section-card"), secIdx = parseInt(secCard.dataset.sectionIndex, 10); 
+            AppState.editingSections.splice(secIdx, 1); 
+            renderEditorContent(); 
+        }
+        else if (action === "add-q-to-section") { 
+            const secIdx = parseInt(t.closest(".section-card").dataset.sectionIndex, 10); 
+            const newQuestion = { id: 'new_q' + Date.now(), text: '', type: 'SCALE_QUESTION', options: '' }; 
+            AppState.editingSections[secIdx].questions.push(newQuestion); 
+            renderEditorContent(); 
+        } 
+        else if (action === "delete-q") { 
+            const qRow = t.closest(".question-row"), {sectionIndex, questionIndex} = qRow.dataset; 
+            AppState.editingSections[parseInt(sectionIndex, 10)].questions.splice(parseInt(questionIndex, 10), 1); 
+            renderEditorContent(); 
+        }
+        else if (action === "toggle-active" && t.checked) Actions.toggleActive(t.dataset.id);
     });
 
     document.addEventListener("change", e => {
         const t = e.target;
-        if (t.dataset.action === "toggle-active" && t.checked) Actions.toggleActive(t.dataset.id);
-        if (t.dataset.propToggle) AppState.editingSurvey[t.dataset.propToggle] = t.checked;
+        if (t.dataset.propToggle) {
+             AppState.editingSurvey[t.dataset.propToggle] = t.checked;
+        }
         if (t.dataset.qProp === "type") {
              const qRow = t.closest(".question-row"), {sectionIndex, questionIndex} = qRow.dataset;
              AppState.editingSections[sectionIndex].questions[questionIndex].type = t.value;
