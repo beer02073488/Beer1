@@ -1,7 +1,7 @@
 // ===============================================================
 // CONFIGURATION
 // ===============================================================
-const SPREADSHEET_ID = '1chyphNjNYhicGaGfSzWK9tWO4pTtzmVzbbmewlJ16Zk'; // <--- !!! ใส่ ID ของ Google Sheet ที่นี่ !!!
+const SPREADSHEET_ID = '1r5ESNnM_OL92ctUFIitHIR4L294CEx-Iwu2-1SXfdTE'; // <--- !!! ใส่ ID ของ Google Sheet ที่นี่ !!!
 const FEEDBACK_SHEET_NAME = 'Feedback';
 const QUESTIONS_SHEET_NAME = 'Questions';
 const SURVEY_LIST_SHEET_NAME = 'Survey_List';
@@ -15,12 +15,14 @@ const MASTER_KEY = '0849536654'; // <--- รหัสผ่านหลัก
 function doGet(e) {
   const page = e.parameter.page;
   if (page === 'admin' || page === 'dashboard') {
-    return HtmlService.createHtmlOutputFromFile('Admin').setTitle("Admin Panel");
+    const template = HtmlService.createTemplateFromFile('Admin');
+    template.page = page || 'dashboard';
+    return template.evaluate().setTitle("Admin Panel").setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
   }
   if (page === 'survey') {
-    return HtmlService.createHtmlOutputFromFile('Survey').setTitle("แบบสำรวจออนไลน์");
+    return HtmlService.createHtmlOutputFromFile('Survey').setTitle("แบบสำรวจออนไลน์").setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
   }
-  return HtmlService.createHtmlOutputFromFile('Index').setTitle("ระบบแบบสำรวจอเนกประสงค์");
+  return HtmlService.createHtmlOutputFromFile('Index').setTitle("ระบบแบบสำรวจอเนกประสงค์").setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
 function getWebAppUrl() {
@@ -43,6 +45,13 @@ function getUniversalPayload(params) {
     const questionsRaw = getQuestionsForSurvey_(survey.id);
     const sections = [];
     let currentSection = null;
+
+    // --- FIX: Handle questions without a section header ---
+    if (questionsRaw.length > 0 && questionsRaw[0].type !== 'SECTION_HEADER') {
+        currentSection = { title: 'ส่วนที่ 1', questions: [] };
+        sections.push(currentSection);
+    }
+
     questionsRaw.forEach(q => {
       if (q.type === 'SECTION_HEADER') {
         currentSection = { title: q.text, questions: [] };
@@ -53,6 +62,7 @@ function getUniversalPayload(params) {
     });
     return { success: true, survey: survey, sections: sections };
   } catch (e) {
+    Logger.log("Error in getUniversalPayload: " + e.message);
     return { success: false, message: e.message };
   }
 }
@@ -64,6 +74,7 @@ function getAdminPayload() {
     const webAppUrl = getWebAppUrl();
     return { success: true, surveys: surveys, allQuestions: allQuestions, webAppUrl: webAppUrl };
   } catch (e) {
+    Logger.log("Error in getAdminPayload: " + e.message);
     return { success: false, message: e.message };
   }
 }
@@ -94,7 +105,7 @@ function getDashboardPayload(filters) {
       if (survey.identifier1_active || survey.identifier2_active) {
           evaluators.push({
             identifier1: (identifier1Index !== undefined && row[identifier1Index]) ? row[identifier1Index] : "ไม่ระบุ",
-            identifier2: (identifier2Index !== undefined && row[identifier2Index]) ? row[identifier2Index] : "ไม่ระระบุ"
+            identifier2: (identifier2Index !== undefined && row[identifier2Index]) ? row[identifier2Index] : "ไม่ระบุ"
           });
       }
       if (feedbackIndex !== undefined && row[feedbackIndex] && row[feedbackIndex].toString().trim() !== "-") {
@@ -166,6 +177,7 @@ function getDashboardPayload(filters) {
     };
     return { success: true, dashboardData: dashboardData };
   } catch (e) {
+    Logger.log("Error in getDashboardPayload: " + e.message);
     return { success: false, message: "Error in getDashboardPayload: " + e.message };
   }
 }
@@ -173,15 +185,24 @@ function getDashboardPayload(filters) {
 // ===============================================================
 // ADMIN & SETTINGS FUNCTIONS
 // ===============================================================
-
 function checkAdminPassword(password) {
-  const scriptProperties = PropertiesService.getScriptProperties();
-  let storedPassword = scriptProperties.getProperty(ADMIN_PASSWORD_KEY);
-  if (!storedPassword) {
-    scriptProperties.setProperty(ADMIN_PASSWORD_KEY, ADMIN_PASSWORD_FALLBACK);
-    storedPassword = ADMIN_PASSWORD_FALLBACK;
+  try {
+    const scriptProperties = PropertiesService.getScriptProperties();
+    let storedPassword = scriptProperties.getProperty(ADMIN_PASSWORD_KEY);
+    if (!storedPassword) {
+      scriptProperties.setProperty(ADMIN_PASSWORD_KEY, ADMIN_PASSWORD_FALLBACK);
+      storedPassword = ADMIN_PASSWORD_FALLBACK;
+    }
+    
+    if (password === storedPassword) {
+      return getAdminPayload(); 
+    } else {
+      return { success: false, message: "รหัสผ่านไม่ถูกต้อง" };
+    }
+  } catch (e) {
+    Logger.log("Error in checkAdminPassword: " + e.message);
+    return { success: false, message: "เกิดข้อผิดพลาดฝั่งเซิร์ฟเวอร์: " + e.message };
   }
-  return password === storedPassword;
 }
 
 function checkPasswordForUpdate_(password) {
@@ -204,6 +225,7 @@ function updateAdminPassword(data) {
     PropertiesService.getScriptProperties().setProperty(ADMIN_PASSWORD_KEY, data.newPassword);
     return { success: true };
   } catch (e) {
+    Logger.log("Error in updateAdminPassword: " + e.message);
     return { success: false, message: e.message };
   }
 }
@@ -219,6 +241,7 @@ function setActiveSurvey(surveyId) {
     range.setValues(values);
     return { success: true };
   } catch (e) {
+    Logger.log("Error in setActiveSurvey: " + e.message);
     return { success: false, message: e.message };
   }
 }
@@ -245,6 +268,7 @@ function saveSurvey(surveyData) {
     }
     return { success: true, surveyId: surveyIdToReturn };
   } catch (e) {
+    Logger.log("Error in saveSurvey: " + e.message);
     return { success: false, message: e.message };
   }
 }
@@ -253,12 +277,14 @@ function saveQuestionsForSurvey(surveyId, questionsData) {
   try {
     const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(QUESTIONS_SHEET_NAME);
     if (sheet.getLastRow() > 1) {
-      const allSurveyIds = sheet.getRange("A:A").getValues().flat();
-      const rowsToDelete = allSurveyIds.reduce((acc, id, index) => {
-        if (id === surveyId) acc.push(index + 1);
-        return acc;
-      }, []);
-      rowsToDelete.reverse().forEach(rowIndex => sheet.deleteRow(rowIndex));
+      const allData = sheet.getDataRange().getValues();
+      const header = allData.shift();
+      const remainingData = allData.filter(row => row[0] !== surveyId);
+      sheet.clearContents();
+      sheet.getRange(1, 1, 1, header.length).setValues([header]);
+      if(remainingData.length > 0){
+        sheet.getRange(2, 1, remainingData.length, remainingData[0].length).setValues(remainingData);
+      }
     }
     const validQuestions = questionsData.filter(q => q.text && q.text.trim() !== "");
     if (validQuestions.length > 0) {
@@ -268,6 +294,7 @@ function saveQuestionsForSurvey(surveyId, questionsData) {
     syncFeedbackSheetHeaders_();
     return { success: true };
   } catch (e) {
+    Logger.log("Error in saveQuestionsForSurvey: " + e.message);
     return { success: false, message: e.message };
   }
 }
@@ -309,6 +336,7 @@ function submitFeedback(data) {
     sheet.appendRow(values);
     return { success: true };
   } catch (e) {
+    Logger.log("Error in submitFeedback: " + e.message);
     return { success: false, message: e.message };
   }
 }
@@ -352,20 +380,25 @@ function getLatestActiveSurvey_() {
 }
 
 function syncFeedbackSheetHeaders_() {
-    const allQuestions = getQuestions_().filter(q => q.type === 'SCALE_QUESTION' || q.type === 'CHOICE_QUESTION');
+    const allQuestions = getQuestions_();
     const questionMap = new Map();
     allQuestions.forEach(q => {
-        const qId = q.id;
-        if (!questionMap.has(qId) || questionMap.get(qId).length < q.text.length) {
-            questionMap.set(qId, `${q.id}_${q.text}`);
+        if(q.type === 'SCALE_QUESTION' || q.type === 'CHOICE_QUESTION'){
+            const qId = q.id;
+            // Use the longest question text for the header, as it's more descriptive
+            if (!questionMap.has(qId) || questionMap.get(qId).length < q.text.length) {
+                questionMap.set(qId, `${q.id}_${q.text}`);
+            }
         }
     });
-    const sortedQuestionIds = Array.from(questionMap.keys()).sort((a,b) => {
-      const numA = parseInt(a.replace (/[^0-9]/g, ''), 10);
-      const numB = parseInt(b.replace (/[^0-9]/g, ''), 10);
-      return numA - numB;
-    });
-    const questionHeaders = sortedQuestionIds.map(id => questionMap.get(id));
+    
+    // Create a stable sort order based on the 'order' column from the sheet
+    const sortedQuestionIds = [...new Set(allQuestions.map(q => q.id))];
+
+    const questionHeaders = sortedQuestionIds
+        .map(id => questionMap.get(id))
+        .filter(Boolean); // Filter out any undefined headers (e.g., from section headers)
+
     const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(FEEDBACK_SHEET_NAME);
     const prefixHeaders = ["SurveyID", "Timestamp", "Identifier1_Response", "Identifier2_Response"];
     const suffixHeaders = ["Feedback", "Satisfaction", "AvgScore", "AvgPercent"];
